@@ -21,4 +21,5 @@ public interface QuestionDAO {
     List<String> findDistinctSubjects() throws DatabaseException;
     List<String> findDistinctUnits(String subject) throws DatabaseException;
     List<String> findDistinctTopics(String subject, String unit) throws DatabaseException;
+    List<Question> findByIdsInOrder(List<Integer> ids) throws DatabaseException;
 }

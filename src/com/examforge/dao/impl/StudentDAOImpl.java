@@ -15,7 +15,8 @@ public class StudentDAOImpl implements StudentDAO {
     @Override
     public int insertAttempt(StudentAttempt attempt) throws DatabaseException {
         String sql = "INSERT INTO student_attempts (student_id, practice_type, subject, total_questions, " +
-                     "correct_answers, total_marks, marks_obtained, time_spent_seconds) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                     "correct_answers, total_marks, marks_obtained, time_spent_seconds, status, assigned_question_ids) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, attempt.getStudentId());
@@ -26,12 +27,58 @@ public class StudentDAOImpl implements StudentDAO {
             ps.setInt(6, attempt.getTotalMarks());
             ps.setInt(7, attempt.getMarksObtained());
             ps.setInt(8, attempt.getTimeSpentSeconds());
+            ps.setString(9, attempt.getStatus());
+            ps.setString(10, attempt.getAssignedQuestionIds());
             ps.executeUpdate();
             ResultSet keys = ps.getGeneratedKeys();
             if (keys.next()) return keys.getInt(1);
             throw new DatabaseException("Failed to retrieve generated attempt ID");
         } catch (SQLException e) {
             throw new DatabaseException("Error inserting attempt: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public boolean completeAttempt(int attemptId, int correctAnswers, int marksObtained, int timeSpentSeconds) throws DatabaseException {
+        String sql = "UPDATE student_attempts SET correct_answers=?, marks_obtained=?, time_spent_seconds=?, status='SUBMITTED' WHERE attempt_id=?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, correctAnswers);
+            ps.setInt(2, marksObtained);
+            ps.setInt(3, timeSpentSeconds);
+            ps.setInt(4, attemptId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            throw new DatabaseException("Error completing attempt: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public StudentAttempt findOpenAttempt(int studentId, String practiceType, String subject) throws DatabaseException {
+        String sql = "SELECT * FROM student_attempts WHERE student_id = ? AND practice_type = ? AND subject = ? " +
+                     "AND status = 'IN_PROGRESS' ORDER BY attempt_id DESC LIMIT 1";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, studentId);
+            ps.setString(2, practiceType);
+            ps.setString(3, subject);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return mapAttempt(rs);
+            return null;
+        } catch (SQLException e) {
+            throw new DatabaseException("Error finding open attempt: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public boolean deleteAttempt(int attemptId) throws DatabaseException {
+        String sql = "DELETE FROM student_attempts WHERE attempt_id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, attemptId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            throw new DatabaseException("Error deleting attempt: " + e.getMessage(), e);
         }
     }
 
@@ -52,7 +99,7 @@ public class StudentDAOImpl implements StudentDAO {
 
     @Override
     public List<StudentAttempt> findAttemptsByStudentId(int studentId) throws DatabaseException {
-        String sql = "SELECT * FROM student_attempts WHERE student_id = ? ORDER BY attempted_at DESC";
+        String sql = "SELECT * FROM student_attempts WHERE student_id = ? AND status = 'SUBMITTED' ORDER BY attempted_at DESC";
         List<StudentAttempt> list = new ArrayList<>();
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -160,7 +207,7 @@ public class StudentDAOImpl implements StudentDAO {
 
     @Override
     public int getTotalAttempts(int studentId) throws DatabaseException {
-        String sql = "SELECT COUNT(*) FROM student_attempts WHERE student_id = ?";
+        String sql = "SELECT COUNT(*) FROM student_attempts WHERE student_id = ? AND status = 'SUBMITTED'";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, studentId);
@@ -174,7 +221,7 @@ public class StudentDAOImpl implements StudentDAO {
     @Override
     public double getAverageScore(int studentId) throws DatabaseException {
         String sql = "SELECT COALESCE(AVG(CASE WHEN total_marks > 0 THEN (marks_obtained * 100.0 / total_marks) ELSE 0 END), 0) " +
-                     "FROM student_attempts WHERE student_id = ?";
+                     "FROM student_attempts WHERE student_id = ? AND status = 'SUBMITTED'";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, studentId);
@@ -188,7 +235,7 @@ public class StudentDAOImpl implements StudentDAO {
     @Override
     public double getSubjectAverageScore(int studentId, String subject) throws DatabaseException {
         String sql = "SELECT COALESCE(AVG(CASE WHEN total_marks > 0 THEN (marks_obtained * 100.0 / total_marks) ELSE 0 END), 0) " +
-                     "FROM student_attempts WHERE student_id = ? AND subject = ?";
+                     "FROM student_attempts WHERE student_id = ? AND subject = ? AND status = 'SUBMITTED'";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, studentId);
@@ -235,6 +282,8 @@ public class StudentDAOImpl implements StudentDAO {
         a.setTotalMarks(rs.getInt("total_marks"));
         a.setMarksObtained(rs.getInt("marks_obtained"));
         a.setTimeSpentSeconds(rs.getInt("time_spent_seconds"));
+        a.setStatus(rs.getString("status"));
+        a.setAssignedQuestionIds(rs.getString("assigned_question_ids"));
         Timestamp at = rs.getTimestamp("attempted_at");
         if (at != null) a.setAttemptedAt(at.toLocalDateTime());
         return a;

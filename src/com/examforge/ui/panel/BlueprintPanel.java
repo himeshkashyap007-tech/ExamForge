@@ -339,6 +339,27 @@ public class BlueprintPanel extends JPanel {
         int row = 0;
         addFormRow(basicPanel, gbc, row++, "Exam Name:", examNameField);
         addFormRow(basicPanel, gbc, row++, "Subject:", subjectCombo);
+
+        JLabel poolLabel = new JLabel(" ");
+        poolLabel.setFont(Theme.font(10, Font.PLAIN));
+        poolLabel.setForeground(Theme.MUTED);
+        subjectCombo.addActionListener(e -> {
+            String sel = (String) subjectCombo.getSelectedItem();
+            if (sel == null) { poolLabel.setText(" "); return; }
+            try {
+                int pool = questionService.countActiveBySubject(sel);
+                poolLabel.setText("Available questions in bank: " + pool);
+            } catch (ExamForgeException ex) {
+                poolLabel.setText(" ");
+            }
+        });
+        if (subjectCombo.getSelectedItem() != null) {
+            for (var al : subjectCombo.getActionListeners()) al.actionPerformed(null);
+        }
+        gbc.gridx = 0; gbc.gridy = row; gbc.gridwidth = 2;
+        basicPanel.add(poolLabel, gbc);
+        row++;
+
         addFormRow(basicPanel, gbc, row++, "Total Marks:", totalMarksField);
         addFormRow(basicPanel, gbc, row++, "Number of Questions:", numQuestionsField);
         addFormRow(basicPanel, gbc, row++, "Duration (minutes):", durationField);

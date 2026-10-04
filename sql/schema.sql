@@ -130,6 +130,8 @@ CREATE TABLE student_attempts (
     total_marks INT NOT NULL,
     marks_obtained INT DEFAULT 0,
     time_spent_seconds INT DEFAULT 0,
+    status VARCHAR(20) NOT NULL DEFAULT 'SUBMITTED',
+    assigned_question_ids TEXT,
     attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (student_id) REFERENCES users(user_id)
 );

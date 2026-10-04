@@ -27,6 +27,7 @@ public class StudentPracticePanel extends JPanel {
     private JButton submitBtn;
     private List<Question> questions;
     private int currentIndex;
+    private int currentAttemptId;
     private Map<Integer, String> answers;
     private long startTime;
     private Runnable backAction;
@@ -119,6 +120,7 @@ public class StudentPracticePanel extends JPanel {
         add(splitPane, BorderLayout.SOUTH);
 
         answers = new HashMap<>();
+        currentAttemptId = 0;
     }
 
     private void startPractice() {
@@ -131,15 +133,28 @@ public class StudentPracticePanel extends JPanel {
         String type = (String) typeCombo.getSelectedItem();
 
         try {
-            switch (type) {
-                case "Random" -> questions = studentService.startRandomPractice(subject, numQuestions);
-                case "Balanced" -> questions = studentService.startBalancedPractice(subject, numQuestions);
-                case "Weak-Area" -> questions = studentService.startWeakAreaPractice(subject, numQuestions, user.getUserId());
-                default -> questions = studentService.startRandomPractice(subject, numQuestions);
+            StudentService.Session session = studentService.startSession(user.getUserId(), type, subject, numQuestions);
+            if (session.isResumed()) {
+                int choice = JOptionPane.showConfirmDialog(this,
+                    "You have an unfinished " + type + " session for '" + subject + "'.\nContinue where you left off?",
+                    "Resume Session", JOptionPane.YES_NO_OPTION);
+                if (choice != JOptionPane.YES_OPTION) {
+                    studentService.abandonSession(session.getAttempt().getAttemptId());
+                    session = studentService.startSession(user.getUserId(), type, subject, numQuestions);
+                }
             }
+            questions = session.getQuestions();
+            currentAttemptId = session.getAttempt().getAttemptId();
 
             if (questions.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "No questions available for this subject");
+                currentAttemptId = 0;
+                questions = new ArrayList<>();
+                questionLabel.setText("Start a practice session to begin");
+                nextBtn.setEnabled(false);
+                submitBtn.setEnabled(false);
+                optionsPanel.removeAll();
+                optionsPanel.revalidate();
+                optionsPanel.repaint();
                 return;
             }
 
@@ -150,7 +165,19 @@ public class StudentPracticePanel extends JPanel {
             submitBtn.setEnabled(questions.size() > 0);
             showQuestion(0);
         } catch (ExamForgeException e) {
-            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            currentAttemptId = 0;
+            questions = new ArrayList<>();
+            questionLabel.setText("Start a practice session to begin");
+            nextBtn.setEnabled(false);
+            submitBtn.setEnabled(false);
+            optionsPanel.removeAll();
+            optionsPanel.revalidate();
+            optionsPanel.repaint();
+            if (e.getMessage() != null && !e.getMessage().isEmpty()) {
+                optionsPanel.add(Theme.label(e.getMessage(), 12, Font.BOLD, Theme.DANGER));
+                optionsPanel.revalidate();
+                optionsPanel.repaint();
+            }
         }
     }
 
@@ -232,8 +259,8 @@ public class StudentPracticePanel extends JPanel {
         String type = (String) typeCombo.getSelectedItem();
 
         try {
-            StudentAttempt attempt = studentService.submitQuiz(
-                user.getUserId(), type != null ? type : "Random",
+            StudentAttempt attempt = studentService.submitSession(
+                currentAttemptId, user.getUserId(), type != null ? type : "Random",
                 subject, questions, answers, timeSpent);
 
             JOptionPane.showMessageDialog(this,
@@ -244,6 +271,7 @@ public class StudentPracticePanel extends JPanel {
                 "Quiz Results", JOptionPane.INFORMATION_MESSAGE);
 
             currentIndex = 0;
+            currentAttemptId = 0;
             answers.clear();
             nextBtn.setEnabled(false);
             submitBtn.setEnabled(false);

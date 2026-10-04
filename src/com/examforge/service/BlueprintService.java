@@ -2,8 +2,10 @@ package com.examforge.service;
 
 import com.examforge.dao.BlueprintDAO;
 import com.examforge.dao.PaperDAO;
+import com.examforge.dao.QuestionDAO;
 import com.examforge.dao.impl.BlueprintDAOImpl;
 import com.examforge.dao.impl.PaperDAOImpl;
+import com.examforge.dao.impl.QuestionDAOImpl;
 import com.examforge.exception.DatabaseException;
 import com.examforge.exception.ExamForgeException;
 import com.examforge.model.*;
@@ -14,11 +16,13 @@ import java.util.List;
 public class BlueprintService {
     private final BlueprintDAO blueprintDAO;
     private final PaperDAO paperDAO;
+    private final QuestionDAO questionDAO;
     private final BlueprintValidator blueprintValidator;
 
     public BlueprintService() {
         this.blueprintDAO = new BlueprintDAOImpl();
         this.paperDAO = new PaperDAOImpl();
+        this.questionDAO = new QuestionDAOImpl();
         this.blueprintValidator = new BlueprintValidator();
     }
 
@@ -35,6 +39,7 @@ public class BlueprintService {
         if (blueprint.getNumberOfQuestions() <= 0) {
             throw new ExamForgeException("Number of questions must be positive");
         }
+        checkQuestionPool(blueprint);
         try {
             blueprint.setStatus(BlueprintStatus.DRAFT);
             int id = blueprintDAO.insert(blueprint);
@@ -56,6 +61,7 @@ public class BlueprintService {
     }
 
     public boolean updateBlueprint(Blueprint blueprint) throws ExamForgeException {
+        checkQuestionPool(blueprint);
         try {
             blueprintDAO.deleteSectionsByBlueprintId(blueprint.getBlueprintId());
             blueprintDAO.deleteConstraintsByBlueprintId(blueprint.getBlueprintId());
@@ -81,6 +87,18 @@ public class BlueprintService {
             return true;
         } catch (DatabaseException e) {
             throw new ExamForgeException("Failed to update blueprint: " + e.getMessage(), e);
+        }
+    }
+
+    private void checkQuestionPool(Blueprint blueprint) throws ExamForgeException {
+        try {
+            int pool = questionDAO.countActiveBySubject(blueprint.getSubject());
+            if (blueprint.getNumberOfQuestions() > pool) {
+                throw new ExamForgeException("You cannot select more questions than are available in the question bank (pool: " +
+                    pool + ", requested: " + blueprint.getNumberOfQuestions() + ").");
+            }
+        } catch (DatabaseException e) {
+            throw new ExamForgeException("Failed to check question pool: " + e.getMessage(), e);
         }
     }
 

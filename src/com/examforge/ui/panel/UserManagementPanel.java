@@ -52,7 +52,7 @@ public class UserManagementPanel extends JPanel {
     private void initUI() {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         buttonPanel.setOpaque(false);
-        buttonPanel.add(createStyledButton(managingTeachers ? "+ Add Teacher" : "+ Add Student",
+        buttonPanel.add(createStyledButton(managingTeachers ? "+  Add Teacher" : "+  Add Student",
             Theme.SUCCESS, this::showAddUserDialog));
         buttonPanel.add(createStyledButton("Remove", Theme.DANGER, this::removeSelected));
 

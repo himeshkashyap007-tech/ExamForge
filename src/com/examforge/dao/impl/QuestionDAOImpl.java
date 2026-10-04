@@ -9,7 +9,9 @@ import com.examforge.model.QuestionType;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class QuestionDAOImpl implements QuestionDAO {
 
@@ -261,6 +263,34 @@ public class QuestionDAOImpl implements QuestionDAO {
         } catch (SQLException e) {
             throw new DatabaseException("Error finding topics: " + e.getMessage(), e);
         }
+    }
+
+    @Override
+    public List<Question> findByIdsInOrder(List<Integer> ids) throws DatabaseException {
+        if (ids == null || ids.isEmpty()) return new ArrayList<>();
+        StringBuilder sql = new StringBuilder("SELECT * FROM questions WHERE question_id IN (");
+        for (int i = 0; i < ids.size(); i++) {
+            if (i > 0) sql.append(",");
+            sql.append("?");
+        }
+        sql.append(")");
+        List<Question> fetched = new ArrayList<>();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < ids.size(); i++) ps.setInt(i + 1, ids.get(i));
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) fetched.add(mapQuestion(rs));
+        } catch (SQLException e) {
+            throw new DatabaseException("Error finding questions by ids: " + e.getMessage(), e);
+        }
+        Map<Integer, Question> byId = new HashMap<>();
+        for (Question q : fetched) byId.put(q.getQuestionId(), q);
+        List<Question> ordered = new ArrayList<>();
+        for (Integer id : ids) {
+            Question q = byId.get(id);
+            if (q != null) ordered.add(q);
+        }
+        return ordered;
     }
 
     private List<Question> executeQueryList(String sql) throws DatabaseException {

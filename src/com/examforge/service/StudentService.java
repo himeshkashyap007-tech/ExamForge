@@ -99,6 +99,125 @@ public class StudentService {
         }
     }
 
+    public static class Session {
+        private final StudentAttempt attempt;
+        private final List<Question> questions;
+        private final boolean resumed;
+
+        public Session(StudentAttempt attempt, List<Question> questions, boolean resumed) {
+            this.attempt = attempt;
+            this.questions = questions;
+            this.resumed = resumed;
+        }
+
+        public StudentAttempt getAttempt() { return attempt; }
+        public List<Question> getQuestions() { return questions; }
+        public boolean isResumed() { return resumed; }
+    }
+
+    public Session startSession(int studentId, String practiceType, String subject, int numQuestions) throws ExamForgeException {
+        try {
+            List<Question> pool = questionDAO.findActiveBySubject(subject);
+            if (numQuestions > pool.size()) {
+                throw new ExamForgeException("You cannot select more questions than are available in the question bank (pool: " +
+                    pool.size() + ", requested: " + numQuestions + ").");
+            }
+
+            StudentAttempt open = studentDAO.findOpenAttempt(studentId, practiceType, subject);
+            if (open != null) {
+                List<Question> restored = restoreAssignedQuestions(open);
+                if (restored.size() == open.getTotalQuestions()) {
+                    return new Session(open, restored, true);
+                }
+            }
+
+            String type = practiceType == null ? "Random" : practiceType;
+            List<Question> selected;
+            switch (type) {
+                case "Balanced" -> selected = startBalancedPractice(subject, numQuestions);
+                case "Weak-Area" -> selected = startWeakAreaPractice(subject, numQuestions, studentId);
+                default -> selected = startRandomPractice(subject, numQuestions);
+            }
+
+            StudentAttempt attempt = new StudentAttempt(studentId, type, subject, selected.size(),
+                selected.stream().mapToInt(Question::getMarks).sum(), 0);
+            attempt.setStatus("IN_PROGRESS");
+            attempt.setAssignedQuestionIds(toCsv(selected));
+            int attemptId = studentDAO.insertAttempt(attempt);
+            attempt.setAttemptId(attemptId);
+            return new Session(attempt, selected, false);
+        } catch (DatabaseException e) {
+            throw new ExamForgeException("Failed to start session: " + e.getMessage(), e);
+        }
+    }
+
+    public void abandonSession(int attemptId) throws ExamForgeException {
+        try {
+            studentDAO.deleteAttempt(attemptId);
+        } catch (DatabaseException e) {
+            throw new ExamForgeException("Failed to abandon session: " + e.getMessage(), e);
+        }
+    }
+
+    public StudentAttempt submitSession(int attemptId, int studentId, String practiceType, String subject,
+                                         List<Question> questions, Map<Integer, String> answers,
+                                         int timeSpentSeconds) throws ExamForgeException {
+        int totalMarks = questions.stream().mapToInt(Question::getMarks).sum();
+        int marksObtained = 0;
+        int correctAnswers = 0;
+
+        for (Question q : questions) {
+            String answer = answers.get(q.getQuestionId());
+            if (answer != null && answer.equalsIgnoreCase(q.getCorrectOption())) {
+                marksObtained += q.getMarks();
+                correctAnswers++;
+            }
+        }
+
+        StudentAttempt attempt = new StudentAttempt(studentId, practiceType, subject,
+            questions.size(), totalMarks, marksObtained);
+        attempt.setAttemptId(attemptId);
+        attempt.setCorrectAnswers(correctAnswers);
+        attempt.setTimeSpentSeconds(timeSpentSeconds);
+
+        try {
+            studentDAO.completeAttempt(attemptId, correctAnswers, marksObtained, timeSpentSeconds);
+
+            for (Question q : questions) {
+                StudentResponse response = new StudentResponse(attemptId, q.getQuestionId(),
+                    answers.getOrDefault(q.getQuestionId(), ""));
+                String correct = q.getCorrectOption();
+                boolean isCorrect = correct != null && correct.equalsIgnoreCase(response.getSelectedOption());
+                response.setCorrect(isCorrect);
+                response.setMarksObtained(isCorrect ? q.getMarks() : 0);
+                studentDAO.insertResponse(response);
+            }
+            return attempt;
+        } catch (DatabaseException e) {
+            throw new ExamForgeException("Failed to submit session: " + e.getMessage(), e);
+        }
+    }
+
+    private List<Question> restoreAssignedQuestions(StudentAttempt attempt) throws DatabaseException {
+        String csv = attempt.getAssignedQuestionIds();
+        if (csv == null || csv.trim().isEmpty()) return new ArrayList<>();
+        List<Integer> ids = new ArrayList<>();
+        for (String part : csv.split(",")) {
+            String t = part.trim();
+            if (!t.isEmpty()) ids.add(Integer.parseInt(t));
+        }
+        return questionDAO.findByIdsInOrder(ids);
+    }
+
+    private String toCsv(List<Question> questions) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < questions.size(); i++) {
+            if (i > 0) sb.append(",");
+            sb.append(questions.get(i).getQuestionId());
+        }
+        return sb.toString();
+    }
+
     public StudentAttempt submitQuiz(int studentId, String practiceType, String subject,
                                       List<Question> questions, Map<Integer, String> answers,
                                       int timeSpentSeconds) throws ExamForgeException {

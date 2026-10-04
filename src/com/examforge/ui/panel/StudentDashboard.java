@@ -67,7 +67,7 @@ public class StudentDashboard extends JPanel {
         sidebar.setBackground(SIDEBAR);
         sidebar.setPreferredSize(new Dimension(252, 0));
         sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
-        sidebar.setBorder(new EmptyBorder(18, 14, 14, 14));
+        sidebar.setBorder(new EmptyBorder(18, 8, 14, 10));
 
         JPanel brand = new JPanel();
         brand.setLayout(new BoxLayout(brand, BoxLayout.Y_AXIS));
@@ -76,11 +76,13 @@ public class StudentDashboard extends JPanel {
         name.setFont(Theme.font(20, Font.BOLD));
         name.setForeground(Color.WHITE);
         name.setAlignmentX(Component.LEFT_ALIGNMENT);
+        name.setBorder(new EmptyBorder(0, 8, 0, 0));
         brand.add(name);
         JLabel tag = new JLabel("Student Practice Portal");
         tag.setFont(Theme.font(10, Font.PLAIN));
         tag.setForeground(new Color(164, 215, 188));
         tag.setAlignmentX(Component.LEFT_ALIGNMENT);
+        tag.setBorder(new EmptyBorder(0, 8, 0, 0));
         brand.add(tag);
         sidebar.add(brand);
 
@@ -139,7 +141,7 @@ public class StudentDashboard extends JPanel {
         JLabel l = new JLabel(text);
         l.setFont(Theme.font(11, Font.BOLD));
         l.setForeground(new Color(150, 208, 177));
-        l.setBorder(new EmptyBorder(2, 10, 8, 0));
+        l.setBorder(new EmptyBorder(2, 8, 8, 0));
         return l;
     }
 

@@ -104,7 +104,7 @@ public final class Theme {
     public static JButton backButton() {
         JButton b = new RoundedButton("\u2190  Back", BRAND_DARK, Color.WHITE, false);
         b.setFont(font(15, Font.BOLD));
-        b.setMargin(new Insets(11, 20, 11, 20));
+        b.setMargin(new Insets(11, 22, 11, 22));
         return b;
     }
 
@@ -233,7 +233,7 @@ public final class Theme {
             setFocusPainted(false);
             setFont(font(14, Font.BOLD));
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            setMargin(new Insets(10, 18, 10, 18));
+            setMargin(new Insets(10, 20, 10, 20));
             addChangeListener(e -> {
                 ButtonModel m = getModel();
                 if (!isEnabled()) currentBg = new Color(226, 230, 238);
@@ -278,7 +278,7 @@ public final class Theme {
             setBorderPainted(false);
             setFocusPainted(false);
             setHorizontalAlignment(SwingConstants.LEFT);
-            setBorder(new EmptyBorder(0, 16, 0, 10));
+            setBorder(new EmptyBorder(0, 8, 0, 12));
             addChangeListener(e -> {
                 ButtonModel m = getModel();
                 if (active) currentBg = activeBg;

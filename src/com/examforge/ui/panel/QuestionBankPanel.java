@@ -66,7 +66,7 @@ public class QuestionBankPanel extends JPanel {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         buttonPanel.setOpaque(false);
 
-        JButton addBtn = Theme.button("+ Add Question", Theme.SUCCESS);
+        JButton addBtn = Theme.button("+  Add Question", Theme.SUCCESS);
         addBtn.addActionListener(e -> showAddQuestionDialog());
         buttonPanel.add(addBtn);
 

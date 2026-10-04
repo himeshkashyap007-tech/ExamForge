@@ -12,9 +12,12 @@ public class StudentAttempt {
     private int totalMarks;
     private int marksObtained;
     private int timeSpentSeconds;
+    private String status;
+    private String assignedQuestionIds;
     private LocalDateTime attemptedAt;
 
     public StudentAttempt() {
+        this.status = "SUBMITTED";
         this.attemptedAt = LocalDateTime.now();
     }
 
@@ -47,6 +50,10 @@ public class StudentAttempt {
     public void setMarksObtained(int marksObtained) { this.marksObtained = marksObtained; }
     public int getTimeSpentSeconds() { return timeSpentSeconds; }
     public void setTimeSpentSeconds(int timeSpentSeconds) { this.timeSpentSeconds = timeSpentSeconds; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public String getAssignedQuestionIds() { return assignedQuestionIds; }
+    public void setAssignedQuestionIds(String assignedQuestionIds) { this.assignedQuestionIds = assignedQuestionIds; }
     public LocalDateTime getAttemptedAt() { return attemptedAt; }
     public void setAttemptedAt(LocalDateTime attemptedAt) { this.attemptedAt = attemptedAt; }
 
