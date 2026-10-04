@@ -1,0 +1,3 @@
+@echo off
+echo Starting ExamForge...
+java -cp "out;lib\*" com.examforge.main.ExamForgeApp
