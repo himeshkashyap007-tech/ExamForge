@@ -98,7 +98,7 @@ public final class Theme {
     }
 
     public static JButton softButton(String text) {
-        return new RoundedButton(text, new Color(238, 241, 247), Color.WHITE, true);
+        return new RoundedButton(text, new Color(238, 241, 247), new Color(52, 83, 154), true);
     }
 
     public static JButton backButton() {
@@ -233,10 +233,10 @@ public final class Theme {
             setFocusPainted(false);
             setFont(font(14, Font.BOLD));
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            setMargin(new Insets(10, 20, 10, 20));
+            setMargin(new Insets(12, 24, 12, 24));
             addChangeListener(e -> {
                 ButtonModel m = getModel();
-                if (!isEnabled()) currentBg = new Color(226, 230, 238);
+                if (!isEnabled()) currentBg = new Color(210, 215, 225);
                 else if (m.isPressed()) currentBg = pressed;
                 else if (m.isRollover()) currentBg = over;
                 else currentBg = base;

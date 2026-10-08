@@ -20,6 +20,8 @@ public class StudentDashboard extends JPanel {
     private final List<NavItem> navItems = new ArrayList<>();
     private JLabel pageTitle;
     private NavItem activeNav;
+    private JPanel sidebar;
+    private JPanel topBarPanel;
 
     private static final Color SIDEBAR = Theme.ACCENT_DARK;
     private static final Color SIDEBAR_ACTIVE = new Color(43, 150, 102);
@@ -35,12 +37,13 @@ public class StudentDashboard extends JPanel {
         mainPanel = new JPanel(cardLayout);
         mainPanel.setBackground(Theme.BG);
 
-        JPanel sidebar = createSidebar();
+        sidebar = createSidebar();
         add(sidebar, BorderLayout.WEST);
 
         JPanel content = new JPanel(new BorderLayout());
         content.setOpaque(false);
-        content.add(createTopBar(), BorderLayout.NORTH);
+        topBarPanel = createTopBar();
+        content.add(topBarPanel, BorderLayout.NORTH);
         content.add(mainPanel, BorderLayout.CENTER);
         add(content, BorderLayout.CENTER);
 
@@ -48,6 +51,8 @@ public class StudentDashboard extends JPanel {
 
         practicePanel = new StudentPracticePanel(user);
         practicePanel.setBackAction(() -> cardLayout.show(mainPanel, "WELCOME"));
+        practicePanel.setExitExamModeAction(this::exitExamMode);
+        practicePanel.setEnterExamModeAction(this::enterExamMode);
         mainPanel.add(practicePanel, "PRACTICE");
 
         StudentResultsPanel resultsPanel = new StudentResultsPanel(user);
@@ -62,6 +67,20 @@ public class StudentDashboard extends JPanel {
     }
 
     /* ---------------- Sidebar ---------------- */
+    public void enterExamMode() {
+        if (sidebar != null) sidebar.setVisible(false);
+        if (topBarPanel != null) topBarPanel.setVisible(false);
+        revalidate();
+        repaint();
+    }
+
+    public void exitExamMode() {
+        if (sidebar != null) sidebar.setVisible(true);
+        if (topBarPanel != null) topBarPanel.setVisible(true);
+        revalidate();
+        repaint();
+    }
+
     private JPanel createSidebar() {
         JPanel sidebar = new JPanel();
         sidebar.setBackground(SIDEBAR);
